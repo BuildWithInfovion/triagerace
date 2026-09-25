@@ -1,0 +1,34 @@
+# Environment
+.env
+*.env
+
+# Python
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+.venv/
+venv/
+env/
+*.egg-info/
+dist/
+build/
+.mypy_cache/
+.pytest_cache/
+*.db
+
+# Node
+node_modules/
+
+# Build output
+frontend/dist/
+
+# Race working directory
+.race_work/
+
+# Bob / IDE
+.bob/
+
+# OS
+.DS_Store
+Thumbs.db

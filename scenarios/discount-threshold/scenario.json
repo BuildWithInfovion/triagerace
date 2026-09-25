@@ -1,0 +1,10 @@
+{
+  "id": "discount-threshold",
+  "title": "Promo discount not applied at exactly $100",
+  "repo_path": "sample_repos/shopcart",
+  "bug_report_file": "bug_report.md",
+  "failing_test": "tests/test_discounts.py::test_discount_applies_at_exactly_100",
+  "full_suite": "tests",
+  "hypotheses_dir": "hypotheses",
+  "test_timeout_seconds": 60
+}

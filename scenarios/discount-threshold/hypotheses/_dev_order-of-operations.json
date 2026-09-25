@@ -1,0 +1,22 @@
+{
+  "id": "order-of-operations",
+  "role": "Order of operations & data flow",
+  "title": "Tax is applied before discount, consuming the discount eligibility",
+  "suspected_file": "shopcart/pricing.py",
+  "suspected_line": 49,
+  "reasoning": "If apply_tax is called before apply_discount, the amount passed to apply_discount would already be inflated by the tax rate, and for a 0% tax rate these would be equal — but for any non-zero rate the discounted amount would be calculated on the wrong base. More critically, the order could cause the wrong amount to be stored in the log as 'total' while the discount was applied to a different intermediate value.",
+  "evidence": [
+    "Log shows subtotal=100.00, discount_applied=false, total=100.00 — the tax and discount steps are both silent",
+    "The order of lines in order_total determines which value is passed to which function"
+  ],
+  "confidence": 0.3,
+  "patch": [
+    {
+      "file": "shopcart/pricing.py",
+      "find": "    amount = subtotal(items)\n    amount = apply_discount(amount)\n    amount = apply_tax(amount, tax_rate)",
+      "replace": "    amount = subtotal(items)\n    amount = apply_tax(amount, tax_rate)\n    amount = apply_discount(amount)"
+    }
+  ],
+  "source": "dev-placeholder",
+  "generated_at": "2025-09-26T10:03:00+05:30"
+}
