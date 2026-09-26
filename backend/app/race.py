@@ -207,9 +207,12 @@ async def run_race(run_id: str) -> None:
         passed = [h for h in final_hyps if h["status"] == "passed"]
         winner_id = None
         if passed:
-            # Earliest finished_at wins
-            winner = min(passed, key=lambda h: h["finished_at"] or float("inf"))
-            winner_id = winner["hypothesis_id"]
+            # Several lenses can converge on a passing fix. Pick the most confident
+            # one, not whichever pytest process happened to exit first.
+            def _rank(h: dict) -> tuple[float, float]:
+                hyp = hypotheses_by_id.get(h["hypothesis_id"])
+                return (-(hyp.confidence if hyp else 0.0), h["finished_at"] or float("inf"))
+            winner_id = min(passed, key=_rank)["hypothesis_id"]
 
         update_run(
             run_id,

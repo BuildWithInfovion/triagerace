@@ -4,6 +4,7 @@ import { HypothesisState, PatchEdit } from '../api'
 interface Props {
   hyp: HypothesisState
   isWinner: boolean
+  winnerLabel?: string
   raceStartedAt: number | null
   now: number
 }
@@ -67,7 +68,7 @@ function elapsed(startTs: number | null, endTs: number | null, now: number): str
 const RUNNING = new Set(['queued', 'patching', 'testing'])
 const DONE = new Set(['passed', 'failed', 'patch_failed', 'timeout', 'error'])
 
-export default function HypothesisCard({ hyp, isWinner, raceStartedAt, now }: Props) {
+export default function HypothesisCard({ hyp, isWinner, winnerLabel = 'WINNER', raceStartedAt, now }: Props) {
   const [showReasoning, setShowReasoning] = useState(false)
   const [showDiff, setShowDiff] = useState(false)
   const [showOutput, setShowOutput] = useState(false)
@@ -79,8 +80,10 @@ export default function HypothesisCard({ hyp, isWinner, raceStartedAt, now }: Pr
 
   const cardBorder = isWinner
     ? 'border-green-500 shadow-[0_0_20px_2px_rgba(34,197,94,0.35)]'
+    : hyp.status === 'passed'
+    ? 'border-green-800'
     : isFailed
-    ? 'border-gray-700 opacity-70'
+    ? 'border-gray-700 opacity-80'
     : 'border-gray-700'
 
   return (
@@ -88,7 +91,7 @@ export default function HypothesisCard({ hyp, isWinner, raceStartedAt, now }: Pr
       {/* Winner ribbon */}
       {isWinner && (
         <div className="absolute top-0 right-0 bg-green-500 text-black text-xs font-black px-3 py-1 rounded-bl-lg rounded-tr-lg">
-          WINNER
+          {winnerLabel}
         </div>
       )}
 
@@ -108,14 +111,14 @@ export default function HypothesisCard({ hyp, isWinner, raceStartedAt, now }: Pr
       <div>
         <p className="text-xs text-gray-400 font-medium uppercase tracking-wide">{hyp.role}</p>
         <p className="text-sm font-semibold text-white leading-snug mt-0.5">{hyp.title}</p>
-        <p className="text-xs text-gray-500 mt-0.5">
+        <p className="text-xs text-gray-400 mt-0.5">
           {hyp.suspected_file}:{hyp.suspected_line}
         </p>
       </div>
 
       {/* Confidence bar */}
       <div>
-        <div className="flex justify-between text-xs text-gray-500 mb-1">
+        <div className="flex justify-between text-xs text-gray-400 mb-1">
           <span>Confidence</span>
           <span>{Math.round(hyp.confidence * 100)}%</span>
         </div>

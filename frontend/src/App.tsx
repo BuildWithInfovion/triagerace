@@ -31,7 +31,7 @@ export default function App() {
   }
 
   if (view === 'intake') {
-    return <IntakeView onRaceStarted={handleRaceStarted} />
+    return <IntakeView onRaceStarted={handleRaceStarted} onViewHistory={() => setView('history')} />
   }
 
   if (view === 'race' && runId && scenario) {
@@ -60,5 +60,5 @@ export default function App() {
     return <HistoryView onRunAgain={handleRunAgain} />
   }
 
-  return <IntakeView onRaceStarted={handleRaceStarted} />
+  return <IntakeView onRaceStarted={handleRaceStarted} onViewHistory={() => setView('history')} />
 }

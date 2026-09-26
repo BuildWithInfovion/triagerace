@@ -1,18 +1,17 @@
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useState } from 'react'
 import { api, ScenarioDetail, ScenarioSummary } from '../api'
 
 interface Props {
   onRaceStarted: (runId: string, scenario: ScenarioDetail) => void
+  onViewHistory: () => void
 }
 
-export default function IntakeView({ onRaceStarted }: Props) {
+export default function IntakeView({ onRaceStarted, onViewHistory }: Props) {
   const [scenarios, setScenarios] = useState<ScenarioSummary[]>([])
   const [selectedId, setSelectedId] = useState('')
   const [detail, setDetail] = useState<ScenarioDetail | null>(null)
-  const [bugReport, setBugReport] = useState('')
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
-  const textareaRef = useRef<HTMLTextAreaElement>(null)
 
   useEffect(() => {
     api.scenarios().then(s => {
@@ -25,7 +24,6 @@ export default function IntakeView({ onRaceStarted }: Props) {
     if (!selectedId) return
     api.scenario(selectedId).then(d => {
       setDetail(d)
-      setBugReport(d.bug_report)
     }).catch(() => setError('Failed to load scenario'))
   }, [selectedId])
 
@@ -34,7 +32,7 @@ export default function IntakeView({ onRaceStarted }: Props) {
     setLoading(true)
     setError('')
     try {
-      const { run_id } = await api.createRun(selectedId, bugReport)
+      const { run_id } = await api.createRun(selectedId, detail.bug_report)
       onRaceStarted(run_id, detail)
     } catch (e: unknown) {
       setError(e instanceof Error ? e.message : 'Failed to start race')
@@ -45,11 +43,19 @@ export default function IntakeView({ onRaceStarted }: Props) {
   return (
     <div className="min-h-screen bg-gray-950 text-white flex flex-col">
       {/* Header */}
-      <header className="border-b border-gray-800 px-8 py-5">
-        <h1 className="text-3xl font-bold tracking-tight text-white">TriageRace</h1>
-        <p className="text-gray-400 mt-1 text-sm">
-          Four hypotheses. One real test. The fastest truth wins.
-        </p>
+      <header className="border-b border-gray-800 px-8 py-5 flex items-center justify-between">
+        <div>
+          <h1 className="text-3xl font-bold tracking-tight text-white">TriageRace</h1>
+          <p className="text-gray-400 mt-1 text-sm">
+            Four hypotheses. One real test. The fastest truth wins.
+          </p>
+        </div>
+        <button
+          className="bg-gray-800 hover:bg-gray-700 text-blue-400 px-4 py-2 rounded text-sm"
+          onClick={onViewHistory}
+        >
+          📋 Race history
+        </button>
       </header>
 
       <main className="flex-1 px-8 py-8 max-w-5xl w-full mx-auto flex flex-col gap-8">
@@ -77,12 +83,14 @@ export default function IntakeView({ onRaceStarted }: Props) {
         <section>
           <label className="block text-sm font-medium text-gray-300 mb-2">Bug Report</label>
           <textarea
-            ref={textareaRef}
-            className="w-full bg-gray-900 border border-gray-700 rounded px-3 py-2 text-sm text-gray-100 font-mono focus:outline-none focus:border-blue-500 resize-y"
+            readOnly
+            className="w-full bg-gray-900 border border-gray-700 rounded px-3 py-2 text-sm text-gray-100 font-mono focus:outline-none resize-y"
             rows={14}
-            value={bugReport}
-            onChange={e => setBugReport(e.target.value)}
+            value={detail?.bug_report ?? ''}
           />
+          <p className="mt-1 text-xs text-gray-500">
+            The ticket IBM Bob's subagents read to produce the hypotheses below (pre-generated in the IDE). The race and tests run live.
+          </p>
         </section>
 
         {/* What Bob understood */}

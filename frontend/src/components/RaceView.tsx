@@ -89,6 +89,8 @@ export default function RaceView({ runId, scenario, onApplied, onRunAgain }: Pro
 
   const allDone = FINAL_RACE.has(run.status)
   const hasWinner = !!run.winner_hypothesis_id
+  const passedCount = run.hypotheses.filter(h => h.status === 'passed').length
+  const consensus = allDone && passedCount > 1
 
   return (
     <div className="min-h-screen bg-gray-950 text-white flex flex-col">
@@ -130,9 +132,17 @@ export default function RaceView({ runId, scenario, onApplied, onRunAgain }: Pro
             <span className="font-semibold text-red-300">⚠ SCENARIO BROKEN — baseline test passed on unpatched code</span>
           )}
           {!run.baseline_status && (
-            <span className="text-gray-600">Running baseline check…</span>
+            <span className="text-gray-400">Running baseline check…</span>
           )}
         </div>
+
+        {/* Consensus: several independent lenses produced a passing fix */}
+        {consensus && (
+          <div className="bg-green-900/30 border border-green-700 rounded px-4 py-3 text-sm text-green-200">
+            <span className="font-semibold">✓ Consensus: {passedCount} of {run.hypotheses.length} independent lenses</span>{' '}
+            produced a fix that passes the real failing test. The highest-confidence one is selected.
+          </div>
+        )}
 
         {/* No winner */}
         {allDone && !hasWinner && (
@@ -148,6 +158,7 @@ export default function RaceView({ runId, scenario, onApplied, onRunAgain }: Pro
               key={h.id}
               hyp={h}
               isWinner={h.id === run.winner_hypothesis_id}
+              winnerLabel={consensus ? 'SELECTED' : 'WINNER'}
               raceStartedAt={run.race_started_at}
               now={now}
             />
@@ -165,7 +176,7 @@ export default function RaceView({ runId, scenario, onApplied, onRunAgain }: Pro
               onClick={applyFix}
               disabled={applyLoading}
             >
-              {applyLoading ? 'Running full suite…' : '✅ Apply winning fix & run full suite'}
+              {applyLoading ? 'Running full suite…' : consensus ? '✅ Apply selected fix & run full suite' : '✅ Apply winning fix & run full suite'}
             </button>
           </div>
         )}

@@ -24,6 +24,15 @@ from .race import run_race, run_verify, active_run_count
 
 app = FastAPI(title="TriageRace")
 
+# Keep strong references to background tasks so they aren't garbage-collected mid-run
+_background_tasks: set[asyncio.Task] = set()
+
+
+def _spawn(coro) -> None:
+    task = asyncio.create_task(coro)
+    _background_tasks.add(task)
+    task.add_done_callback(_background_tasks.discard)
+
 # CORS for local Vite dev server only
 if os.getenv("TRIAGERACE_ENV", "dev") == "dev":
     app.add_middleware(
@@ -135,7 +144,7 @@ async def create_run(body: CreateRunRequest):
         insert_hypothesis(run_id, h.id, json.dumps(h.model_dump()))
 
     # Fire on the running event loop so subprocess creation works correctly
-    asyncio.create_task(run_race(run_id))
+    _spawn(run_race(run_id))
     return {"run_id": run_id}
 
 
@@ -227,7 +236,7 @@ async def apply_winner(run_id: str):
     if run["status"] not in ("race_done",):
         raise HTTPException(status_code=400, detail=f"Cannot apply: run status is '{run['status']}'")
 
-    asyncio.create_task(run_verify(run_id))
+    _spawn(run_verify(run_id))
     return {"ok": True}
 
 

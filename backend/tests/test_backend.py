@@ -7,9 +7,7 @@ from __future__ import annotations
 
 import json
 import os
-import shutil
 import sys
-import tempfile
 import time
 import asyncio
 from pathlib import Path
@@ -131,11 +129,12 @@ def test_scenario_loads_correctly():
     assert s.metrics is not None
 
 
-def test_hypotheses_load_four_dev_placeholders():
-    """All 4 dev placeholder hypotheses are loaded when no real ones exist."""
+def test_shipped_hypotheses_are_four_bob_lenses():
+    """The shipped scenario has 4 hypotheses, one per lens, all produced by IBM Bob subagents."""
     hyps = _load_hypotheses(SCENARIO_DIR / "hypotheses")
     assert len(hyps) == 4
-    assert all(h.is_dev for h in hyps)
+    assert len({h.id for h in hyps}) == 4
+    assert all(h.source == "ibm-bob-subagent" for h in hyps)
 
 
 def test_dev_files_ignored_when_real_ones_exist(tmp_path):
@@ -181,68 +180,85 @@ def test_invalid_hypothesis_file_is_skipped(tmp_path):
 # End-to-end race test
 # ---------------------------------------------------------------------------
 
-def test_e2e_race_correct_hypothesis_passes():
+def test_e2e_race_correct_hypothesis_passes(tmp_path, monkeypatch):
     """
-    End-to-end: the correct boundary-logic hypothesis passes the failing test;
-    the wrong order-of-operations hypothesis fails.
-    All hypotheses run concurrently (overlapping timestamps).
+    End-to-end: the correct boundary fix passes the failing test; a wrong
+    order-of-operations fix fails. Hypotheses are injected here so the test
+    doesn't depend on whichever hypothesis files are currently on disk.
+    Both run concurrently (overlapping timestamps).
     """
     import asyncio as _asyncio
     import uuid as _uuid
 
-    # Set a throwaway DB
-    db_path = tempfile.mktemp(suffix=".db")
-    os.environ["TRIAGERACE_DB"] = db_path
+    monkeypatch.setenv("TRIAGERACE_DB", str(tmp_path / "test.db"))
+    monkeypatch.chdir(tmp_path)  # .race_work is relative to cwd
 
     from app import db as _db
+    from app import race as _race
+    from app.scenarios import LoadedScenario
+
     _db.init_db()
 
-    # Build a minimal scenario with 2 hypotheses: 1 correct, 1 wrong
-    correct_patch = [{
+    correct = _make_hypothesis([{
         "file": "shopcart/pricing.py",
-        "find": "    if amount > DISCOUNT_THRESHOLD:   # SEEDED BUG: should be >=",
+        "find": "    if amount > DISCOUNT_THRESHOLD:",
         "replace": "    if amount >= DISCOUNT_THRESHOLD:",
-    }]
-    wrong_patch = [{
+    }], hyp_id="boundary-logic")
+    wrong = _make_hypothesis([{
         "file": "shopcart/pricing.py",
-        "find": "    amount = subtotal(items)\n    amount = apply_discount(amount)\n    amount = apply_tax(amount, tax_rate)",
-        "replace": "    amount = subtotal(items)\n    amount = apply_tax(amount, tax_rate)\n    amount = apply_discount(amount)",
-    }]
+        "find": "    amount = apply_discount(amount)\n    amount = apply_tax(amount, tax_rate)",
+        "replace": "    amount = apply_tax(amount, tax_rate)\n    amount = apply_discount(amount)",
+    }], hyp_id="order-of-operations")
+
+    real = load_scenario(SCENARIO_DIR)
+    scenario = LoadedScenario(real.config, real.bug_report, [correct, wrong], {}, SCENARIO_DIR)
+    monkeypatch.setattr(_race, "load_all_scenarios", lambda: {"discount-threshold": scenario})
 
     run_id = str(_uuid.uuid4())
     _db.insert_run(run_id, "discount-threshold", "test bug report", time.time())
+    for h in (correct, wrong):
+        _db.insert_hypothesis(run_id, h.id, json.dumps(h.model_dump()))
 
-    for hyp_id, patch in [("boundary-logic", correct_patch), ("order-of-operations", wrong_patch)]:
-        from app.scenarios import load_all_scenarios
-        scenarios = load_all_scenarios()
-        sc = scenarios["discount-threshold"]
-        for h in sc.hypotheses:
-            if h.id == hyp_id:
-                _db.insert_hypothesis(run_id, hyp_id, json.dumps(h.model_dump()))
-                break
-
-    from app.race import run_race
-    _asyncio.run(run_race(run_id))
+    _asyncio.run(_race.run_race(run_id))
 
     run = _db.get_run(run_id)
     hyps = {h["hypothesis_id"]: h for h in _db.get_hypotheses(run_id)}
 
     assert run["status"] == "race_done", f"Expected race_done, got {run['status']}"
+    assert run["verify_output"].startswith("BASELINE:FAIL"), "baseline must fail on unpatched code"
     assert run["winner_hypothesis_id"] == "boundary-logic"
     assert hyps["boundary-logic"]["status"] == "passed"
-    assert hyps["order-of-operations"]["status"] in ("failed", "patch_failed")
+    assert hyps["order-of-operations"]["status"] == "failed"
 
-    # Overlapping timestamps: both started before either finished
-    start_bl = hyps["boundary-logic"]["started_at"]
-    start_oo = hyps["order-of-operations"]["started_at"]
-    finish_bl = hyps["boundary-logic"]["finished_at"]
-    finish_oo = hyps["order-of-operations"]["finished_at"]
-    # Both should have started (not None)
-    assert start_bl is not None
-    assert start_oo is not None
-    # At least one started before the other finished → concurrent
-    assert start_bl < finish_oo or start_oo < finish_bl
+    # Overlapping timestamps: at least one started before the other finished → concurrent
+    bl, oo = hyps["boundary-logic"], hyps["order-of-operations"]
+    assert bl["started_at"] is not None and oo["started_at"] is not None
+    assert bl["started_at"] < oo["finished_at"] or oo["started_at"] < bl["finished_at"]
 
-    # Cleanup
-    os.unlink(db_path)
-    shutil.rmtree(".race_work", ignore_errors=True)
+
+def test_shipped_hypotheses_race_selects_most_confident(tmp_path, monkeypatch):
+    """Racing the shipped Bob hypotheses: baseline fails, and among passing ones the most confident is selected."""
+    import asyncio as _asyncio
+    import uuid as _uuid
+
+    monkeypatch.setenv("TRIAGERACE_DB", str(tmp_path / "test.db"))
+    monkeypatch.chdir(tmp_path)
+
+    from app import db as _db
+    from app.race import run_race
+
+    _db.init_db()
+    sc = load_scenario(SCENARIO_DIR)
+    run_id = str(_uuid.uuid4())
+    _db.insert_run(run_id, sc.config.id, "test", time.time())
+    for h in sc.hypotheses:
+        _db.insert_hypothesis(run_id, h.id, json.dumps(h.model_dump()))
+
+    _asyncio.run(run_race(run_id))
+
+    run = _db.get_run(run_id)
+    assert run["verify_output"].startswith("BASELINE:FAIL")
+    passed = {h["hypothesis_id"] for h in _db.get_hypotheses(run_id) if h["status"] == "passed"}
+    assert passed, "at least one Bob hypothesis should fix the failing test"
+    confidence = {h.id: h.confidence for h in sc.hypotheses}
+    assert run["winner_hypothesis_id"] == max(passed, key=confidence.__getitem__)
