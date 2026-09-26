@@ -52,7 +52,9 @@ def on_startup():
 # Health
 # ---------------------------------------------------------------------------
 
-@app.get("/api/health")
+# HEAD too: uptime monitors (e.g. UptimeRobot) probe with HEAD, which would
+# otherwise fall through to the static mount and 404
+@app.api_route("/api/health", methods=["GET", "HEAD"])
 def health():
     return {"ok": True}
 
