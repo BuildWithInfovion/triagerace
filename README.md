@@ -60,7 +60,7 @@ Results panel
 | **Agent mode subagents** | 4 Bob subagent tasks, one per debugging lens (boundary logic, numeric precision, input validation, order of operations). Each reads the bug report ticket as a document and the source code, then writes a structured hypothesis JSON file. |
 | **Document understanding** | Each subagent reads `scenarios/discount-threshold/bug_report.md` — a realistic support ticket with log excerpts — without being told where the bug is. |
 | **Structured output** | Bob writes hypothesis JSON files matching a strict pydantic schema. The race engine loads and validates them. |
-| **Codebase co-authoring** | IBM Bob (Agent mode) was used to build this entire codebase. |
+| **Codebase co-authoring** | IBM Bob (Agent mode) built the codebase from the build brief (`TriageRace_BOB_BUILD_BRIEF.md`), milestone by milestone. The full session is in `bob_sessions/`. After the Bobcoin budget ran out, Claude Code was used for a final review pass (bug fixes, UI wording, README transparency), as the hackathon FAQ allows. The hypotheses and core architecture are Bob's work. |
 
 Session exports are in `bob_sessions/` (one Markdown export covering the build task and the four subagent tasks). Prompts are in `bob_prompts/subagent_prompts.md`.
 
