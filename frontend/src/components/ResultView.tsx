@@ -5,6 +5,7 @@ interface Props {
   run: RunState
   scenario: ScenarioDetail
   onRunAgain: () => void
+  onViewHistory: () => void
 }
 
 function formatSecs(s: number | null): string {
@@ -20,7 +21,7 @@ function mmss(s: number | null): string {
   return `${m}:${String(sec).padStart(2, '0')}`
 }
 
-export default function ResultView({ run, scenario, onRunAgain }: Props) {
+export default function ResultView({ run, scenario, onRunAgain, onViewHistory }: Props) {
   const [showOutput, setShowOutput] = useState(false)
 
   const winner = run.hypotheses.find(h => h.id === run.winner_hypothesis_id)
@@ -154,6 +155,62 @@ export default function ResultView({ run, scenario, onRunAgain }: Props) {
           )}
         </section>
 
+        {/* Confidence calibration table */}
+        <section>
+          <h2 className="text-sm font-medium text-gray-300 mb-3">
+            IBM Bob confidence vs outcome
+          </h2>
+          <div className="bg-gray-900 border border-gray-800 rounded overflow-hidden">
+            <table className="w-full text-xs">
+              <thead>
+                <tr className="border-b border-gray-800 text-gray-500 uppercase tracking-wide">
+                  <th className="text-left px-4 py-2">Lens</th>
+                  <th className="text-left px-4 py-2">Hypothesis</th>
+                  <th className="text-right px-4 py-2">Confidence</th>
+                  <th className="text-center px-4 py-2">Outcome</th>
+                </tr>
+              </thead>
+              <tbody>
+                {run.hypotheses.map(h => {
+                  const isWinner = h.id === run.winner_hypothesis_id
+                  const passed = h.status === 'passed'
+                  return (
+                    <tr key={h.id} className="border-b border-gray-800 last:border-0">
+                      <td className="px-4 py-2 text-gray-300 font-medium">{h.role}</td>
+                      <td className="px-4 py-2 text-gray-400 max-w-xs truncate">{h.title}</td>
+                      <td className="px-4 py-2 text-right">
+                        <div className="flex items-center justify-end gap-2">
+                          <div className="w-16 h-1.5 bg-gray-800 rounded-full overflow-hidden">
+                            <div
+                              className="h-full bg-blue-500 rounded-full"
+                              style={{ width: `${(h.confidence ?? 0) * 100}%` }}
+                            />
+                          </div>
+                          <span className="text-white font-mono w-8 text-right">
+                            {Math.round((h.confidence ?? 0) * 100)}%
+                          </span>
+                        </div>
+                      </td>
+                      <td className="px-4 py-2 text-center">
+                        {passed ? (
+                          <span className={`font-bold ${isWinner ? 'text-green-400' : 'text-green-600'}`}>
+                            {isWinner ? '✓ WINNER' : '✓ passed'}
+                          </span>
+                        ) : (
+                          <span className="text-red-400">✗ {h.status}</span>
+                        )}
+                      </td>
+                    </tr>
+                  )
+                })}
+              </tbody>
+            </table>
+          </div>
+          <p className="text-xs text-gray-600 mt-1">
+            Confidence scores are IBM Bob's own estimates. Outcome is determined solely by pytest exit code — not by the model.
+          </p>
+        </section>
+
         {/* Footer */}
         <footer className="border-t border-gray-800 pt-4 text-xs text-gray-500 flex flex-col gap-1">
           <p>
@@ -167,12 +224,20 @@ export default function ResultView({ run, scenario, onRunAgain }: Props) {
           )}
         </footer>
 
-        <button
-          className="self-start bg-gray-800 hover:bg-gray-700 text-white px-5 py-2 rounded text-sm"
-          onClick={onRunAgain}
-        >
-          ← Run again
-        </button>
+        <div className="flex gap-3">
+          <button
+            className="bg-gray-800 hover:bg-gray-700 text-white px-5 py-2 rounded text-sm"
+            onClick={onRunAgain}
+          >
+            ← Run again
+          </button>
+          <button
+            className="bg-gray-800 hover:bg-gray-700 text-blue-400 px-5 py-2 rounded text-sm"
+            onClick={onViewHistory}
+          >
+            📋 Race history
+          </button>
+        </div>
       </main>
     </div>
   )

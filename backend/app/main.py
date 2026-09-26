@@ -17,6 +17,7 @@ from .db import (
     get_run,
     get_hypotheses,
     update_run,
+    list_runs,
 )
 from .scenarios import load_all_scenarios
 from .race import run_race, run_verify, active_run_count
@@ -228,6 +229,30 @@ async def apply_winner(run_id: str):
 
     asyncio.create_task(run_verify(run_id))
     return {"ok": True}
+
+
+@app.get("/api/runs")
+def get_runs_history():
+    """List recent runs for the history page."""
+    runs = list_runs(50)
+    scenarios = load_all_scenarios()
+    result = []
+    for run in runs:
+        sc = scenarios.get(run["scenario_id"])
+        race_duration = None
+        if run.get("race_started_at") and run.get("race_finished_at"):
+            race_duration = round(run["race_finished_at"] - run["race_started_at"], 2)
+        result.append({
+            "run_id": run["id"],
+            "scenario_id": run["scenario_id"],
+            "scenario_title": sc.config.title if sc else run["scenario_id"],
+            "status": run["status"],
+            "created_at": run["created_at"],
+            "winner_hypothesis_id": run["winner_hypothesis_id"],
+            "verify_status": run["verify_status"],
+            "race_duration_seconds": race_duration,
+        })
+    return result
 
 
 # ---------------------------------------------------------------------------

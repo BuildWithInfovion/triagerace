@@ -3,8 +3,9 @@ import { RunState, ScenarioDetail } from './api'
 import IntakeView from './components/IntakeView'
 import RaceView from './components/RaceView'
 import ResultView from './components/ResultView'
+import HistoryView from './components/HistoryView'
 
-type View = 'intake' | 'race' | 'result'
+type View = 'intake' | 'race' | 'result' | 'history'
 
 export default function App() {
   const [view, setView] = useState<View>('intake')
@@ -50,10 +51,14 @@ export default function App() {
         run={finalRun}
         scenario={scenario}
         onRunAgain={handleRunAgain}
+        onViewHistory={() => setView('history')}
       />
     )
   }
 
-  // Fallback (should not reach here)
+  if (view === 'history') {
+    return <HistoryView onRunAgain={handleRunAgain} />
+  }
+
   return <IntakeView onRaceStarted={handleRaceStarted} />
 }

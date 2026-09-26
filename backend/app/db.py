@@ -101,6 +101,16 @@ def get_run(run_id: str) -> dict | None:
         return dict(row) if row else None
 
 
+def list_runs(limit: int = 50) -> list[dict]:
+    with _conn() as con:
+        rows = con.execute(
+            "SELECT * FROM runs ORDER BY created_at DESC LIMIT ?", (limit,)
+        ).fetchall()
+        return [dict(r) for r in rows]
+
+
+
+
 # ---------------------------------------------------------------------------
 # Hypotheses
 # ---------------------------------------------------------------------------

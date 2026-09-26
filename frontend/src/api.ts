@@ -105,6 +105,17 @@ async function _post<T>(path: string, body?: unknown): Promise<T> {
   return r.json()
 }
 
+export interface HistoryEntry {
+  run_id: string
+  scenario_id: string
+  scenario_title: string
+  status: string
+  created_at: number
+  winner_hypothesis_id: string | null
+  verify_status: string | null
+  race_duration_seconds: number | null
+}
+
 export const api = {
   scenarios: (): Promise<ScenarioSummary[]> => _get('/api/scenarios'),
   scenario: (id: string): Promise<ScenarioDetail> => _get(`/api/scenarios/${id}`),
@@ -112,4 +123,5 @@ export const api = {
     _post('/api/runs', { scenario_id, bug_report_text }),
   getRun: (run_id: string): Promise<RunState> => _get(`/api/runs/${run_id}`),
   applyWinner: (run_id: string): Promise<{ ok: boolean }> => _post(`/api/runs/${run_id}/apply`),
+  history: (): Promise<HistoryEntry[]> => _get('/api/runs'),
 }
