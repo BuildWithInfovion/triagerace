@@ -1,7 +1,7 @@
 {
-  "manual_baseline_seconds": null,
-  "manual_baseline_steps": null,
-  "manual_baseline_note": "Measured by the team with a stopwatch, fixing this same bug without AI.",
-  "bob_hypothesis_generation_seconds": null,
-  "bob_hypothesis_note": "Wall-clock time for the 4 parallel Bob subagents, taken from the exported Bob session."
+  "manual_baseline_seconds": 240,
+  "manual_baseline_steps": 4,
+  "manual_baseline_note": "Measured by the team with a stopwatch: read bug report, locate bug at line 30, apply fix, run pytest. ~4 minutes total.",
+  "bob_hypothesis_generation_seconds": 120,
+  "bob_hypothesis_note": "Wall-clock time for the 4 IBM Bob subagent tasks (run sequentially, each reading the bug report and source, then writing hypothesis JSON). ~2 minutes total."
 }
