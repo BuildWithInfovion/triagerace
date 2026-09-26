@@ -4,7 +4,7 @@
 
 <!-- hero screenshot: docs/screenshots/race-view.png -->
 
-**Live demo:** _deploy URL here_  
+**Live demo:** https://triagerace.onrender.com  
 **Demo video:** _video link here_
 
 > ⚠️ Hosted on Render free tier — the first request after inactivity can take **about 1 minute** while the container wakes up. Open the URL and wait before recording or judging.
@@ -72,8 +72,8 @@ Session exports are in `bob_sessions/` (one Markdown export covering the build t
 |---|---|---|
 | **Manual baseline** | 4:00 | Stopwatch: read the ticket, find the bug, apply the fix, run pytest |
 | **Bob hypothesis generation** | 2:00 | Stopwatch: the 4 subagent tasks, run one after another |
-| **Race (4 parallel tests)** | ~1–2 s | Measured live by the app on every run |
-| **Verify (full suite)** | ~1–2 s | Measured live by the app on every run |
+| **Race (4 parallel tests)** | ~1–2 s locally, ~10–15 s on the hosted free tier | Measured live by the app on every run (the free instance has a small CPU share) |
+| **Verify (full suite)** | ~1–3 s | Measured live by the app on every run |
 
 The source of truth is `scenarios/discount-threshold/metrics.json`. The app shows `—` for anything not measured, and only shows a speed-up when both sides are real numbers.
 

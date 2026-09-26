@@ -5,6 +5,7 @@ from __future__ import annotations
 
 import asyncio
 import json
+import os
 import shutil
 import sys
 import time
@@ -65,6 +66,9 @@ async def _run_pytest(
     proc = await asyncio.create_subprocess_exec(
         sys.executable, "-m", "pytest", "-q", "-p", "no:cacheprovider", test_target,
         cwd=str(cwd),
+        # Skip third-party plugin autoload (e.g. anyio's, pulled in by FastAPI):
+        # the sample repo needs none, and it trims startup on small CPUs.
+        env={**os.environ, "PYTEST_DISABLE_PLUGIN_AUTOLOAD": "1"},
         stdout=asyncio.subprocess.PIPE,
         stderr=asyncio.subprocess.STDOUT,
     )
