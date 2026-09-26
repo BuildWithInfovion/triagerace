@@ -221,7 +221,7 @@ async def run_race(run_id: str) -> None:
     finally:
         _active_runs.discard(run_id)
         # Schedule cleanup after 10 minutes
-        asyncio.get_event_loop().call_later(600, _clean_work, run_id)
+        asyncio.get_running_loop().call_later(600, _clean_work, run_id)
 
 
 async def run_verify(run_id: str) -> None:

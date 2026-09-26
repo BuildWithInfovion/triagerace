@@ -1,0 +1,24 @@
+{
+  "id": "input-validation",
+  "role": "Input & coupon validation",
+  "title": "Guard clause in apply_discount silently skips discount for exactly $100.00",
+  "suspected_file": "shopcart/pricing.py",
+  "suspected_line": 30,
+  "reasoning": "The apply_discount function contains a guard clause `if amount > DISCOUNT_THRESHOLD` that acts as an implicit validator for whether the discount path should execute. For a cart of exactly $100.00, this guard evaluates to False (100.00 > 100.00 is False), silently falling through and returning the original amount unchanged — no exception, no log, just a silent no-op. The bug report confirms `discount_applied=false` with `subtotal=100.00`, which is exactly the behaviour of a guard clause that excludes the boundary value. The validate_coupon function and order_total pipeline have no other early-returns that affect this path; the only guard that can silently prevent the discount is this strict comparison.",
+  "evidence": [
+    "Log shows subtotal=100.00 discount_applied=false — discount path was silently skipped, not errored",
+    "Cart of exactly $100.00 hits the boundary case; $120.00 cart passes the guard and receives discount correctly",
+    "validate_coupon returns True for None/empty coupon, so no early-return in order_total blocks the discount call",
+    "apply_discount uses `>` instead of `>=`, making the boundary value $100.00 fall through the guard without discount"
+  ],
+  "confidence": 0.75,
+  "patch": [
+    {
+      "file": "shopcart/pricing.py",
+      "find": "    if amount > DISCOUNT_THRESHOLD:   # SEEDED BUG: should be >=",
+      "replace": "    if amount >= DISCOUNT_THRESHOLD:"
+    }
+  ],
+  "source": "ibm-bob-subagent",
+  "generated_at": "2025-09-25T20:30:00+05:30"
+}

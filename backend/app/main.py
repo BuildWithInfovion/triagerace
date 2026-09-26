@@ -3,7 +3,7 @@ import json
 import time
 import uuid
 
-from fastapi import FastAPI, HTTPException, BackgroundTasks
+from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel
@@ -116,7 +116,7 @@ class CreateRunRequest(BaseModel):
 
 
 @app.post("/api/runs", status_code=201)
-async def create_run(body: CreateRunRequest, background_tasks: BackgroundTasks):
+async def create_run(body: CreateRunRequest):
     if active_run_count() >= 2:
         raise HTTPException(status_code=429, detail="Too many concurrent races. Try again shortly.")
 
@@ -133,12 +133,9 @@ async def create_run(body: CreateRunRequest, background_tasks: BackgroundTasks):
     for h in scenario.hypotheses:
         insert_hypothesis(run_id, h.id, json.dumps(h.model_dump()))
 
-    background_tasks.add_task(_launch_race, run_id)
+    # Fire on the running event loop so subprocess creation works correctly
+    asyncio.create_task(run_race(run_id))
     return {"run_id": run_id}
-
-
-async def _launch_race(run_id: str):
-    await run_race(run_id)
 
 
 @app.get("/api/runs/{run_id}")
@@ -220,7 +217,7 @@ def get_run_state(run_id: str):
 
 
 @app.post("/api/runs/{run_id}/apply")
-async def apply_winner(run_id: str, background_tasks: BackgroundTasks):
+async def apply_winner(run_id: str):
     run = get_run(run_id)
     if not run:
         raise HTTPException(status_code=404, detail="Run not found")
@@ -229,12 +226,8 @@ async def apply_winner(run_id: str, background_tasks: BackgroundTasks):
     if run["status"] not in ("race_done",):
         raise HTTPException(status_code=400, detail=f"Cannot apply: run status is '{run['status']}'")
 
-    background_tasks.add_task(_launch_verify, run_id)
+    asyncio.create_task(run_verify(run_id))
     return {"ok": True}
-
-
-async def _launch_verify(run_id: str):
-    await run_verify(run_id)
 
 
 # ---------------------------------------------------------------------------

@@ -1,0 +1,24 @@
+{
+  "id": "numeric-precision",
+  "role": "Numeric precision & rounding",
+  "title": "Strict `>` comparison fails for exact boundary value due to Decimal representation sensitivity",
+  "suspected_file": "shopcart/pricing.py",
+  "suspected_line": 30,
+  "reasoning": "The `apply_discount` function uses `amount > DISCOUNT_THRESHOLD` with `DISCOUNT_THRESHOLD = Decimal('100.00')`. When `subtotal` returns exactly `Decimal('100.00')`, the strict `>` comparison yields `False` because a value that is numerically equal is not greater-than. Any numeric representation path that could introduce even a sub-cent float imprecision (e.g., if `Decimal(total)` in `subtotal` were called on a float intermediate) would make the comparison unpredictable at the boundary. The safe, precision-correct fix is `>=`, which handles both exact equality and the case where Decimal arithmetic produces the precise threshold value without relying on the comparison being strict.",
+  "evidence": [
+    "Cart of exactly $100.00 (2 × $50.00) → discount_applied=false in the log",
+    "$120.00 cart receives the discount correctly — only the exact boundary fails",
+    "`subtotal()` wraps its result in `Decimal(total)` which is a no-op when already Decimal but would silently introduce float imprecision if prices were floats, making exact boundary comparisons unreliable",
+    "CI failure: `assert Decimal('100.00') == Decimal('90.00')` — the subtotal is exactly Decimal('100.00') yet no discount is applied"
+  ],
+  "confidence": 0.72,
+  "patch": [
+    {
+      "file": "shopcart/pricing.py",
+      "find": "    if amount > DISCOUNT_THRESHOLD:   # SEEDED BUG: should be >=",
+      "replace": "    if amount >= DISCOUNT_THRESHOLD:"
+    }
+  ],
+  "source": "ibm-bob-subagent",
+  "generated_at": "2025-09-26T10:30:00+05:30"
+}
