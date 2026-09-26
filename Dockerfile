@@ -1,9 +1,12 @@
 # Stage 1: Build frontend
-FROM node:20-alpine AS frontend-builder
+FROM node:22-alpine AS frontend-builder
 WORKDIR /app/frontend
 COPY frontend/package*.json ./
 RUN npm ci
 COPY frontend/ ./
+# GitHub link on the results page (Vite inlines it at build time)
+ARG VITE_REPO_URL=https://github.com/BuildWithInfovion/triagerace
+ENV VITE_REPO_URL=$VITE_REPO_URL
 RUN npm run build
 
 # Stage 2: Python backend + built frontend
