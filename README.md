@@ -2,7 +2,7 @@
 
 > *"When a bug comes in, TriageRace sends four IBM Bob subagents after it, each investigating through a different lens. Every proposed patch is tested live against the real failing test in its own sandbox — then the selected fix is verified against the full suite."*
 
-<!-- hero screenshot: docs/screenshots/race-view.png -->
+![TriageRace — four IBM Bob agents, one bug, the real test suite decides](docs/screenshots/cover.png)
 
 **Live demo:** https://triagerace.onrender.com  
 **Demo video:** _video link here_
@@ -62,7 +62,21 @@ Results panel
 | **Structured output** | Bob writes hypothesis JSON files matching a strict pydantic schema. The race engine loads and validates them. |
 | **Codebase co-authoring** | IBM Bob (Agent mode) built the codebase from the build brief (`TriageRace_BOB_BUILD_BRIEF.md`), milestone by milestone. The full session is in `bob_sessions/`. After the Bobcoin budget ran out, Claude Code was used for a final review pass (bug fixes, UI wording, README transparency), as the hackathon FAQ allows. The hypotheses and core architecture are Bob's work. |
 
-Session exports are in `bob_sessions/` (one Markdown export covering the build task and the four subagent tasks). Prompts are in `bob_prompts/subagent_prompts.md`.
+Session exports are in `bob_sessions/`: one Markdown export covering the build task and the four subagent tasks, plus a task-summary screenshot (`bob-task-sessions-summary.png`) showing all five tasks and their Bobcoin usage. Solo project. Prompts are in `bob_prompts/subagent_prompts.md`.
+
+---
+
+## Screenshots
+
+| Intake: the ticket and four Bob hypotheses | Race: baseline fails, four sandboxed pytest runs |
+|---|---|
+| ![Intake](docs/screenshots/intake.jpeg) | ![Race running](docs/screenshots/race-running.png) |
+| **Consensus: 4 of 4 lenses pass, most confident selected** | **Result: full suite green, measured metrics** |
+| ![Race consensus](docs/screenshots/race-consensus.png) | ![Results](docs/screenshots/results.png) |
+
+IBM Bob task sessions (build task and four subagent tasks):
+
+![IBM Bob task sessions](bob_sessions/bob-task-sessions-summary.png)
 
 ---
 
